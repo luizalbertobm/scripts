@@ -212,7 +212,7 @@ install_grub_theme(){
     git clone https://github.com/vinceliuice/grub2-themes.git
     cd grub2-themes
     sudo ./install.sh -b -t tela
-    cd..
+    cd ..
 
     sudo apt install plymouth libplymouth5 plymouth-label
     git clone https://github.com/emanuele-scarsella/vortex-ubuntu-plymouth-theme.git
