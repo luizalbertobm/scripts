@@ -208,6 +208,9 @@ install_network_tools(){
 }
 
 install_grub_theme(){
+    sudo grub-install /dev/sda
+    sudo update-grub
+
     echo "Instalando Tema do Grub..."
     git clone https://github.com/vinceliuice/grub2-themes.git
     cd grub2-themes
@@ -219,6 +222,7 @@ install_grub_theme(){
     cd vortex-ubuntu-plymouth-theme
     sudo chmod +x install
     sudo ./install
+    sudo reboot 3
 }
 
 
