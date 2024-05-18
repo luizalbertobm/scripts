@@ -1,5 +1,12 @@
 #!/bin/bash
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+NC='\033[0m' # No Color
+
 # Get the directory where the script is located
 current_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
@@ -9,17 +16,17 @@ if [[ "$SHELL" == */zsh ]]; then
 elif [[ "$SHELL" == */bash ]]; then
     config_file="$HOME/.bashrc"
 else
-    echo "Unsupported shell. This script supports Bash and Zsh."
+    echo $red_text "Unsupported shell. This script supports Bash and Zsh."
     exit 1
 fi
 
 # Check if the current directory is already in the PATH
 if ! grep -q "export PATH=.*$current_dir" "$config_file"; then
     # Add the directory to the PATH
-    echo "export PATH=\$PATH:$current_dir" >> "$config_file"
-    echo "Current directory ($current_dir) added to PATH in $config_file."
+    echo "export PATH=\$PATH:$current_dir" >>"$config_file"
+    echo $green_text "Current directory ($current_dir) added to PATH in $config_file."
 else
-    echo "Current directory ($current_dir) is already in the PATH."
+    echo $yellow_text "Current directory ($current_dir) is already in the PATH."
 fi
 
 # Apply changes based on the shell
@@ -35,35 +42,92 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-
 # Atualiza o sistema
-echo "Atualizando o sistema..."
+echo -e "${YELLOW}Atualizando o sistema..."
 # apt update && apt upgrade -y
+
+# Função para exibir a descrição de um pacote apt
+get_apt_description() {
+    local app=$1
+    apt show "$app" 2>/dev/null | awk '/^Description:/,/^$/' | sed 's/^Description: //'
+}
+
+# Função para exibir a descrição de um pacote snap
+get_snap_description() {
+    local app=$1
+    snap info "$app" 2>/dev/null | awk '/^description:/,/^snap-id:/' | sed 's/^description: //; /^snap-id:/d'
+}
+
+install_apps() {
+    for app in "$@"; do
+        # Tenta obter a descrição do pacote apt
+        description=$(get_apt_description "$app")
+        if [ -z "$description" ]; then
+            # Se não encontrar no apt, tenta no snap
+            description=$(get_snap_description "$app")
+            if [ -z "$description" ]; then
+                echo -e "${RED}No description found for $app. ${NC}"
+                continue
+            else
+                # Se encontrar no snap, mostra a descrição e pede confirmação
+                echo -e "${GREEN}Snap Package: $app ${BLUE}"
+            fi
+        else
+            # Se encontrar no apt, mostra a descrição e pede confirmação
+            echo -e "${GREEN}APT Package: $app ${BLUE}"
+        fi
+
+        echo $yellow_text "$description"
+
+        # Pergunta ao usuário se deseja instalar o aplicativo
+        echo -e "${YELLOW}Do you want to install $app? (y/n): ${NC}"
+        read answer
+        case $answer in
+        [Yy]*)
+            if apt show "$app" >/dev/null 2>&1; then
+                echo "Installing $app with apt..."
+                sudo apt install -y "$app"
+            elif snap info "$app" >/dev/null 2>&1; then
+                echo "Installing $app with snap..."
+                sudo snap install "$app"
+            else
+                echo "Package $app not found in both apt and snap."
+            fi
+            ;;
+        [Nn]*)
+            echo "Skipping $app."
+            ;;
+        *)
+            echo "Invalid answer. Skipping $app."
+            ;;
+        esac
+    done
+}
 
 # Instala Programas Essenciais
 install_essentials() {
     echo "Instalando programas essenciais..."
     # Instalar utilitários básicos
-    apt install -y vim curl wget gdebi htop gnome-tweaks gparted snapd usb-creator-gtk imagemagick gnupg lsb-release
+    install_apps vim curl wget gdebi htop gnome-tweaks gparted snapd usb-creator-gtk imagemagick gnupg lsb-release
     # Instalar codecs de mídia
-    apt install -y ubuntu-restricted-extras
+    install_apps ubuntu-restricted-extras
     # Instalar suporte a arquivos compactados
-    apt install -y unzip zip
+    install_apps unzip zip
     # Instalar suporte a Flatpak
-    apt install -y flatpak
-    apt install -y gnome-software-plugin-flatpak
-    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    install_apps flatpak
+    install_apps gnome-software-plugin-flatpak
+    # flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     # Instalar drivers adicionais (isso abrirá uma janela GUI)
-    ubuntu-drivers autoinstall
+    # ubuntu-drivers autoinstall
 }
 
 # Instala App Image Launcher
 install_app_image_launcher() {
     echo "Instalando App Image Launcher..."
-    local url=$(curl -s https://api.github.com/repos/TheAssassin/AppImageLauncher/releases/latest \
-                | grep browser_download_url \
-                | grep 'bionic_amd64.deb' \
-                | cut -d '"' -f 4)
+    local url=$(curl -s https://api.github.com/repos/TheAssassin/AppImageLauncher/releases/latest |
+        grep browser_download_url |
+        grep 'bionic_amd64.deb' |
+        cut -d '"' -f 4)
 
     if [ -z "$url" ]; then
         echo "Não foi possível encontrar a URL de download do App Image Launcher."
@@ -79,18 +143,14 @@ install_app_image_launcher() {
 # Instala Ferramentas de Desenvolvimento
 install_development_tools() {
     echo "Instalando ferramentas de desenvolvimento..."
-    apt install -y git nodejs npm build-essential cmake python3-pip apt-transport-https ca-certificates software-properties-common \
-        python3-setuptools python-setuptools php android-tools-adb android-tools-fastboot
+    install_apps git nodejs npm build-essential cmake python3-pip apt-transport-https ca-certificates software-properties-common python3-setuptools python-setuptools php android-tools-adb android-tools-fastboot postman beekeeper-studio
     snap install android-studio --classic
     snap install phpstorm --classic
-    snap install postman
-    snap install beekeeper-studio
 }
 
-install_office_and_multimedia(){
+install_office_and_multimedia() {
     echo "Instalando Ferramentas Multimídia e de Escritório..."
-    apt install -y kdenlive peek obs-studio vlc flameshot libreoffice-writer libreoffice-calc
-    snap install notion-snap-reborn spotify
+    install_apps kdenlive peek obs-studio vlc flameshot libreoffice-writer libreoffice-calc notion-snap-reborn spotify
 }
 
 # Configura Git
@@ -105,12 +165,26 @@ configure_git() {
     git config --list
 }
 
+confirmation_apt() {
+    local package="$1"
+    if dpkg -s "$package" &>/dev/null; then
+        echo -e "$package já está instalado."
+        return 0
+    fi
+
+    if (whiptail --title "Confirmação" --yesno "Deseja instalar $package?" 8 78); then
+        return 0
+    else
+        return 1
+    fi
+}
+
 # Configura Extensões do VS Code
 configure_vscode() {
     echo "Configurando extensões do VS Code..."
     snap install code --classic
     # Verifica se o VS Code foi instalado com sucesso
-    if ! command -v code &> /dev/null; then
+    if ! command -v code &>/dev/null; then
         echo "VS Code não está instalado. Pulando instalação de extensões..."
         return
     fi
@@ -142,12 +216,15 @@ clone_and_setup() {
 
     # Verifica se o diretório do plugin já existe
     if [ ! -d "$dest_dir" ]; then
-        git clone "$repo_url" "$dest_dir" || { echo "Falha ao clonar $repo_url"; return 1; }
+        git clone "$repo_url" "$dest_dir" || {
+            echo "Falha ao clonar $repo_url"
+            return 1
+        }
     fi
 
     # Adiciona a linha de configuração ao .zshrc se não estiver lá
     if ! grep -qF "$source_line" ~/.zshrc; then
-        echo "$source_line" >> ~/.zshrc
+        echo -e "$source_line" >>~/.zshrc
     fi
 }
 
@@ -157,10 +234,10 @@ install_zsh() {
     apt install -y zsh
 
     # Instala Oh My Zsh e o tema powerlevel10k
-    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" \
-        || echo "Falha ao instalar Oh My Zsh"
-    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH:-~/.oh-my-zsh}/themes/powerlevel10k \
-        || echo "Falha ao clonar powerlevel10k"
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" ||
+        echo "Falha ao instalar Oh My Zsh"
+    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH:-~/.oh-my-zsh}/themes/powerlevel10k ||
+        echo "Falha ao clonar powerlevel10k"
 
     local ZSHRC="$HOME/.zshrc"
     local NEW_THEME='ZSH_THEME="powerlevel10k/powerlevel10k"'
@@ -174,40 +251,40 @@ install_zsh() {
 
     # Instala o plugin zsh-autosuggestions
     clone_and_setup "https://github.com/zsh-users/zsh-autosuggestions" \
-                    "$HOME/.zsh/zsh-autosuggestions" \
-                    "source $HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh"
+        "$HOME/.zsh/zsh-autosuggestions" \
+        "source $HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh"
 
     # Instala o plugin zsh-syntax-highlighting
     clone_and_setup "https://github.com/zsh-users/zsh-syntax-highlighting.git" \
-                    "$HOME/.zsh/zsh-syntax-highlighting" \
-                    "source $HOME/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+        "$HOME/.zsh/zsh-syntax-highlighting" \
+        "source $HOME/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 
     # Instala o plugin zsh-completions
     clone_and_setup "https://github.com/zsh-users/zsh-completions.git" \
-                    "$HOME/.zsh/zsh-completions" \
-                    "source $HOME/.zsh/zsh-completions/zsh-completions.zsh"
-    
+        "$HOME/.zsh/zsh-completions" \
+        "source $HOME/.zsh/zsh-completions/zsh-completions.zsh"
+
 }
 
-install_google_chrome(){
+install_google_chrome() {
     echo "Instalando Google Chrome..."
     wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
     dpkg -i google-chrome-stable_current_amd64.deb
     rm google-chrome-stable_current_amd64.deb
 }
 
-install_communicators(){
+install_communicators() {
     echo "Instalando Ferramentas de Comunicação..."
     snap install slack --classic
     snap install discord --classic
 }
 
-install_network_tools(){
+install_network_tools() {
     echo "Instalando Ferramentas de Rede..."
-    apt install -y nmap net-tools
+    install_apps nmap net-tools
 }
 
-install_grub_theme(){
+install_grub_theme() {
     sudo grub-install /dev/sda
     sudo update-grub
 
@@ -218,7 +295,7 @@ install_grub_theme(){
     cd ..
 }
 
-install_plymouth_theme(){
+install_plymouth_theme() {
     echo "Instalando Tema do Plymouth..."
     sudo apt install plymouth libplymouth5 plymouth-label
     git clone https://github.com/emanuele-scarsella/vortex-ubuntu-plymouth-theme.git
@@ -228,6 +305,21 @@ install_plymouth_theme(){
     cd ..
 }
 
+install_gpt_console(){
+    sudo apt instal php php-curl
+    git clone git@github.com:luizalbertobm/gpt-php.git
+    cd gpt-php
+    sudo chmod +x gpt.php
+    sudo ln -s "$(pwd)/gpt.php" /usr/local/bin/gpt    
+}
+
+install_docker() {
+    ./extras/install-docker.sh
+}
+
+install_mac_theme() {
+    ./extras/install-docker.sh
+}
 
 # Menu Principal
 while true; do
@@ -243,9 +335,10 @@ while true; do
         "9" "Instalar Ferramentas de Rede" \
         "10" "Instalar Ferramentas de escritório" \
         "11" "Instalar Docker" \
-        "12" "Instalar Tema do Mac" \
-        "13" "Instalar Tema do Plymouth" \
-        "14" "Instalar Tema do Grub" 3>&1 1>&2 2>&3)
+        "12" "Inslatal GPT no console" \
+        "13" "Instalar Tema do Mac" \
+        "14" "Instalar Tema do Plymouth" \
+        "15" "Instalar Tema do Grub" 3>&1 1>&2 2>&3)
 
     exitstatus=$?
     if [ $exitstatus != 0 ]; then
@@ -254,20 +347,21 @@ while true; do
 
     # Chama a função com base na escolha
     case $CHOICE in
-        1) install_essentials ;;
-        2) install_app_image_launcher ;;
-        3) install_development_tools ;;
-        4) configure_git ;;
-        5) configure_vscode ;;
-        6) install_zsh ;;
-        7) install_google_chrome ;;
-        8) install_communicators ;;
-        9) install_network_tools ;;
-        10) install_office_and_multimedia ;;
-        11) curl -sL https://gist.githubusercontent.com/luizalbertobm/5f47ae9813115549ecebd841eb6580f0/raw/15bd647ee44a0f27f0e8957c98bcff75db9e332d/install_docker.sh | sudo bash ;;
-        12) curl -sL https://gist.githubusercontent.com/luizalbertobm/f9331f25211732752e77e7065b72acca/raw/b656c7395b0aed141eac478fbc3f39bd8fa82e4c/installMacTheme.sh | sudo bash ;;
-        13) install_plymouth_theme ;;
-        14) install_grub_theme ;;
+    1) install_essentials ;;
+    2) install_app_image_launcher ;;
+    3) install_development_tools ;;
+    4) configure_git ;;
+    5) configure_vscode ;;
+    6) install_zsh ;;
+    7) install_google_chrome ;;
+    8) install_communicators ;;
+    9) install_network_tools ;;
+    10) install_office_and_multimedia ;;
+    11) install_docker ;;
+    12) install_gpt_console ;;
+    13) install_mac_theme ;;
+    14) install_plymouth_theme ;;
+    15) install_grub_theme ;;
     esac
 done
 
