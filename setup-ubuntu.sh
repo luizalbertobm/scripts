@@ -310,7 +310,7 @@ install_gpt_console(){
     git clone git@github.com:luizalbertobm/gpt-php.git
     cd gpt-php
     sudo chmod +x gpt.php
-    sudo ln -s "$(pwd)/gpt.php" /usr/local/bin/gpt    
+    sudo ln -s "$(pwd)/gpt.php" /usr/local/bin/gpt
 }
 
 install_docker() {
