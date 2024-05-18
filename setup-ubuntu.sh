@@ -216,13 +216,16 @@ install_grub_theme(){
     cd grub2-themes
     sudo ./install.sh -b -t tela
     cd ..
+}
 
+install_plymouth_theme(){
+    echo "Instalando Tema do Plymouth..."
     sudo apt install plymouth libplymouth5 plymouth-label
     git clone https://github.com/emanuele-scarsella/vortex-ubuntu-plymouth-theme.git
     cd vortex-ubuntu-plymouth-theme
     sudo chmod +x install
     sudo ./install
-    sudo reboot 3
+    cd ..
 }
 
 
@@ -241,7 +244,8 @@ while true; do
         "10" "Instalar Ferramentas de escritório" \
         "11" "Instalar Docker" \
         "12" "Instalar Tema do Mac" \
-        "13" "Instalar Tema do Grub" 3>&1 1>&2 2>&3)
+        "13" "Instalar Tema do Plymouth" \
+        "14" "Instalar Tema do Grub" 3>&1 1>&2 2>&3)
 
     exitstatus=$?
     if [ $exitstatus != 0 ]; then
@@ -262,7 +266,8 @@ while true; do
         10) install_office_and_multimedia ;;
         11) curl -sL https://gist.githubusercontent.com/luizalbertobm/5f47ae9813115549ecebd841eb6580f0/raw/15bd647ee44a0f27f0e8957c98bcff75db9e332d/install_docker.sh | sudo bash ;;
         12) curl -sL https://gist.githubusercontent.com/luizalbertobm/f9331f25211732752e77e7065b72acca/raw/b656c7395b0aed141eac478fbc3f39bd8fa82e4c/installMacTheme.sh | sudo bash ;;
-        13) install_grub_theme ;;
+        13) install_plymouth_theme ;;
+        14) install_grub_theme ;;
     esac
 done
 
