@@ -243,7 +243,6 @@ install_zsh() {
     local NEW_THEME='ZSH_THEME="powerlevel10k/powerlevel10k"'
     if [ -f "$ZSHRC" ]; then
         sed -i.bak "/^ZSH_THEME=/c\\$NEW_THEME" "$ZSHRC"
-        p10k configure
         echo "Tema ZSH atualizado para $NEW_THEME em $ZSHRC"
     else
         echo "Arquivo .zshrc não encontrado em $ZSHRC"
@@ -262,7 +261,7 @@ install_zsh() {
     # Instala o plugin zsh-completions
     clone_and_setup "https://github.com/zsh-users/zsh-completions.git" \
         "$HOME/.zsh/zsh-completions" \
-        "source $HOME/.zsh/zsh-completions/zsh-completions.zsh"
+        "source $HOME/.zsh/zsh-syntax-completions/zsh-completions.plugin.zsh"
 
 }
 
