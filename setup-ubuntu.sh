@@ -249,19 +249,19 @@ install_zsh() {
     fi
 
     # Instala o plugin zsh-autosuggestions
-    clone_and_setup "https://github.com/zsh-users/zsh-autosuggestions" \
-        "$HOME/.zsh/zsh-autosuggestions" \
-        "source $HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh"
+    git clone https://github.com/zsh-users/zsh-autosuggestions "$HOME/.zsh/zsh-autosuggestions" ||
+        echo "Falha ao clonar zsh-autosuggestions"
+    echo "source $HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh" >>"$HOME/.zshrc"
 
     # Instala o plugin zsh-syntax-highlighting
-    clone_and_setup "https://github.com/zsh-users/zsh-syntax-highlighting.git" \
-        "$HOME/.zsh/zsh-syntax-highlighting" \
-        "source $HOME/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$HOME/.zsh/zsh-syntax-highlighting" ||
+        echo "Falha ao clonar zsh-syntax-highlighting"
+    echo "source $HOME/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" >>"$HOME/.zshrc"
 
     # Instala o plugin zsh-completions
-    clone_and_setup "https://github.com/zsh-users/zsh-completions.git" \
-        "$HOME/.zsh/zsh-completions" \
-        "source $HOME/.zsh/zsh-syntax-completions/zsh-completions.plugin.zsh"
+    git clone https://github.com/zsh-users/zsh-completions.git "$HOME/.zsh/zsh-completions" ||
+        echo "Falha ao clonar zsh-completions"
+    echo "source $HOME/.zsh/zsh-syntax-completions/zsh-completions.plugin.zsh" >>"$HOME/.zshrc"
 
 }
 
