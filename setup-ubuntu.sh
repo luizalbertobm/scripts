@@ -280,8 +280,7 @@ install_google_chrome() {
 
 install_communicators() {
     echo "Instalando Ferramentas de Comunicação..."
-    snap install slack --classic
-    snap install discord --classic
+    install_apps slack:classic discord:classic
 }
 
 install_network_tools() {
