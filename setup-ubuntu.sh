@@ -60,26 +60,34 @@ get_snap_description() {
 
 install_apps() {
     for app in "$@"; do
-        # Tenta obter a descrição do pacote apt
+        # Check if the app should be installed with classic mode
+        if [[ "$app" == *":classic" ]]; then
+            app_name="${app%:classic}"
+            echo "Installing $app_name with snap in classic mode..."
+            sudo snap install "$app_name" --classic
+            continue
+        fi
+
+        # Try to get the description from apt
         description=$(get_apt_description "$app")
         if [ -z "$description" ]; then
-            # Se não encontrar no apt, tenta no snap
+            # If not found in apt, try snap
             description=$(get_snap_description "$app")
             if [ -z "$description" ]; then
                 echo -e "${RED}No description found for $app. ${NC}"
                 continue
             else
-                # Se encontrar no snap, mostra a descrição e pede confirmação
+                # If found in snap, show the description and ask for confirmation
                 echo -e "${GREEN}Snap Package: $app ${BLUE}"
             fi
         else
-            # Se encontrar no apt, mostra a descrição e pede confirmação
+            # If found in apt, show the description and ask for confirmation
             echo -e "${GREEN}APT Package: $app ${BLUE}"
         fi
 
         echo $yellow_text "$description"
 
-        # Pergunta ao usuário se deseja instalar o aplicativo
+        # Ask the user if they want to install the app
         echo -e "${YELLOW}Do you want to install $app? (y/n): ${NC}"
         read answer
         case $answer in
@@ -143,9 +151,7 @@ install_app_image_launcher() {
 # Instala Ferramentas de Desenvolvimento
 install_development_tools() {
     echo "Instalando ferramentas de desenvolvimento..."
-    install_apps git nodejs npm build-essential cmake python3-pip apt-transport-https ca-certificates software-properties-common python3-setuptools python-setuptools php android-tools-adb android-tools-fastboot postman beekeeper-studio
-    snap install android-studio --classic
-    snap install phpstorm --classic
+    install_apps git nodejs npm build-essential cmake python3-pip apt-transport-https ca-certificates software-properties-common python3-setuptools python-setuptools php android-tools-adb android-tools-fastboot postman beekeeper-studio android-studio:classic phpstorm:classic
 }
 
 install_office_and_multimedia() {
